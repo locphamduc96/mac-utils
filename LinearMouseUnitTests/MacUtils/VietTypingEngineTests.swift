@@ -78,6 +78,14 @@ final class VietTypingEngineTests: XCTestCase {
             ("muonos", "muốn"),
             ("chuooi", "chuôi"),
             ("tiengse", "tiếng"),
+            ("doidor", "đổi"),
+            ("heset", "hết"),
+            ("laf", "là"),
+            ("tiesnge", "tiếng"),
+            ("doio", "dôi"),
+            ("dduowngf", "đường"),
+            ("duowngfd", "đường"),
+            ("nguoiwf", "người"),
             ("vietje", "việt"),
             ("muonso", "muốn")
         ])

@@ -65,6 +65,48 @@ final class UISnapshotTests: XCTestCase {
         settle()
         try save(window: permissionWindow, name: "07-xin-quyen-accessibility")
         permissionWindow.close()
+
+        try saveMenuBarIcons(name: "08-icon-thanh-menu")
+    }
+
+    /// V / E template icons tinted as the menu bar does, on a dark and a light bar, at 4×.
+    private func saveMenuBarIcons(name: String) throws {
+        let scale: CGFloat = 4
+        let bar = NSSize(width: 120, height: 24)
+        let canvas = try XCTUnwrap(NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(bar.width * scale),
+            pixelsHigh: Int(bar.height * 2 * scale),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ))
+        canvas.size = NSSize(width: bar.width, height: bar.height * 2)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: canvas)
+        for (row, background, tint) in [(1, NSColor(white: 0.12, alpha: 1), NSColor.white), (0, .white, .black)] {
+            let barRect = NSRect(x: 0, y: CGFloat(row) * bar.height, width: bar.width, height: bar.height)
+            background.setFill()
+            barRect.fill()
+            for (index, letter) in ["V", "E"].enumerated() {
+                let icon = VietnameseStatusItem.outlinedLetter(letter)
+                let tinted = NSImage(size: icon.size, flipped: false) { rect in
+                    icon.draw(in: rect)
+                    tint.set()
+                    rect.fill(using: .sourceAtop)
+                    return true
+                }
+                let origin = NSPoint(x: 30 + CGFloat(index) * 40, y: barRect.minY + (bar.height - icon.size.height) / 2)
+                tinted.draw(at: origin, from: .zero, operation: .sourceOver, fraction: 1)
+            }
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        let data = try XCTUnwrap(canvas.representation(using: .png, properties: [:]))
+        try data.write(to: outputDirectory.appendingPathComponent("\(name).png"))
     }
 
     private func settle() {

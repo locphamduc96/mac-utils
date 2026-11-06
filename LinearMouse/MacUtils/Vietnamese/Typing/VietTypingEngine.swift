@@ -55,7 +55,8 @@ final class VietTypingEngine {
     /// words; restored when the word ends. Words like "mix" (mĩ) or "sex" (sẽ) are left Vietnamese.
     static let englishWords: Set<String> = [
         "as", "is", "us", "if", "of", "or", "has", "his", "her", "was", "now", "how", "row", "see", "tree",
-        "door", "keep", "deep", "soon", "test", "data", "var", "post", "most", "list", "does", "theme"
+        "door", "keep", "deep", "soon", "test", "data", "var", "post", "most", "list", "does", "theme", "did",
+        "dad", "queue", "these", "there", "here", "reset"
     ]
 
     init(settings: VietTypingSettings = VietTypingSettings()) {

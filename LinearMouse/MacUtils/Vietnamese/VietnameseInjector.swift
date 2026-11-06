@@ -54,7 +54,24 @@ final class VietnameseInjector {
         static let settle: UInt32 = 20_000
     }
 
+    /// xkey's default ("fast") timings in microseconds. Without any gap some apps (Telegram) apply a backspace
+    /// after the text posted behind it and swallow letters.
+    private enum FastDelay {
+        static let backspace: UInt32 = 1000
+        static let beforeText: UInt32 = 3000
+        static let text: UInt32 = 1500
+        static let settle: UInt32 = 5000
+    }
+
     var frontmostBundleID: String?
+
+    /// Where paced events enter the stream: just below our tap. With the tap at HID level that is the session
+    /// tap, where they queue behind physical keys already passed on; posting further down (annotated session)
+    /// lets a backspace overtake a key still going through other apps' session taps ("la" + f → "aà").
+    var pacedPostLocation = CGEventTapLocation.cgSessionEventTap
+
+    /// Longer text (macros) goes through the paced queue so the tap thread never sleeps for long.
+    private static let longTextThreshold = 40
 
     /// Entered while paced injections are queued or running, so the next physical key waits for them. The serial
     /// queue keeps injections in order; nothing on the tap thread ever waits without a timeout.
@@ -68,7 +85,7 @@ final class VietnameseInjector {
     }
 
     /// Deletes `backspaces` characters and types `text`; `key` (Return / Tab) is sent again afterwards.
-    /// `pacing` multiplies the terminal delays; nil sends everything at once.
+    /// `pacing` multiplies the terminal delays; nil uses the short fast delays on the tap thread.
     func inject(backspaces: Int, text: String, followedBy key: CGEvent?, pacing: UInt32?, proxy: CGEventTapProxy) {
         key?.setIntegerValueField(.eventSourceUserData, value: Self.marker)
         var backspaceCount = backspaces
@@ -80,18 +97,29 @@ final class VietnameseInjector {
             injectPaced(backspaces: backspaceCount, text: text, followedBy: key, pacing: pacing)
             return
         }
+        if text.utf16.count > Self.longTextThreshold {
+            injectPaced(backspaces: backspaceCount, text: text, followedBy: key, pacing: 1)
+            return
+        }
 
         let source = CGEventSource(stateID: .privateState)
         for _ in 0 ..< backspaceCount {
             postKey(CGKeyCode(kVK_Delete), source: source, route: .proxy(proxy))
+            usleep(FastDelay.backspace)
+        }
+        if backspaceCount > 0 {
+            usleep(FastDelay.beforeText)
         }
         if !text.isEmpty {
-            postText(text, source: source, route: .proxy(proxy))
+            postText(text, source: source, route: .proxy(proxy), delay: FastDelay.text)
         }
         key?.tapPostEvent(proxy)
+        if backspaceCount > 0 {
+            usleep(FastDelay.settle)
+        }
     }
 
-    /// Posts below every event tap (annotated session) off the tap callback, with xkey's terminal delays.
+    /// Posts just below our tap (`pacedPostLocation`) off the tap callback, with xkey's terminal delays.
     /// The group is entered before dispatch so a key typed meanwhile cannot slip in first.
     private func injectPaced(backspaces: Int, text: String, followedBy key: CGEvent?, pacing: UInt32) {
         pendingInjections.enter()
@@ -110,7 +138,7 @@ final class VietnameseInjector {
             }
             if let key {
                 usleep(TerminalDelay.text * pacing)
-                key.post(tap: .cgAnnotatedSessionEventTap)
+                key.post(tap: self.pacedPostLocation)
             }
             usleep(TerminalDelay.settle * pacing)
         }
@@ -163,9 +191,8 @@ final class VietnameseInjector {
             down.tapPostEvent(proxy)
             up.tapPostEvent(proxy)
         case .session:
-            // Downstream of our tap whether it sits at HID or (fallback) session level.
-            down.post(tap: .cgAnnotatedSessionEventTap)
-            up.post(tap: .cgAnnotatedSessionEventTap)
+            down.post(tap: pacedPostLocation)
+            up.post(tap: pacedPostLocation)
         }
     }
 

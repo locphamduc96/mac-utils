@@ -16,7 +16,11 @@ final class VietnameseStatusItem: NSObject, NSMenuDelegate {
         guard observations.isEmpty else {
             return
         }
-        observations.append(Defaults.observe(keys: .vietnameseModuleEnabled, .vietnameseTypingOn) { [weak self] in
+        observations.append(Defaults.observe(
+            keys: .vietnameseModuleEnabled,
+            .vietnameseTypingOn,
+            .vietnameseToggleHotkey
+        ) { [weak self] in
             DispatchQueue.main.async {
                 self?.update()
             }
@@ -44,14 +48,30 @@ final class VietnameseStatusItem: NSObject, NSMenuDelegate {
         let item = statusItem ?? makeStatusItem()
         statusItem = item
         let on = Defaults[.vietnameseTypingOn]
-        item.button?.attributedTitle = NSAttributedString(
-            string: on ? "V" : "E",
+        let hotkey = Defaults[.vietnameseToggleHotkey].shortTitle
+        item.button?.image = Self.outlinedLetter(on ? "V" : "E")
+        item.button?.toolTip = on ? "Đang gõ tiếng Việt (\(hotkey) để tắt)" : "Đang gõ tiếng Anh (\(hotkey) để bật)"
+    }
+
+    /// Hollow letter (outline only) as a template image, so the menu bar draws it white or black to match.
+    static func outlinedLetter(_ letter: String) -> NSImage {
+        let text = NSAttributedString(
+            string: letter,
             attributes: [
-                .font: NSFont.systemFont(ofSize: 14, weight: .bold),
-                .foregroundColor: on ? NSColor.controlAccentColor : NSColor.labelColor
+                .font: NSFont.systemFont(ofSize: 15, weight: .bold),
+                .strokeColor: NSColor.black,
+                // A positive stroke width draws the outline without filling the glyph.
+                .strokeWidth: 4.5
             ]
         )
-        item.button?.toolTip = on ? "Đang gõ tiếng Việt (⌃⇧ để tắt)" : "Đang gõ tiếng Anh (⌃⇧ để bật)"
+        let textSize = text.size()
+        let size = NSSize(width: ceil(textSize.width) + 2, height: 18)
+        let image = NSImage(size: size, flipped: false) { rect in
+            text.draw(at: NSPoint(x: (rect.width - textSize.width) / 2, y: (rect.height - textSize.height) / 2))
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 
     private func makeStatusItem() -> NSStatusItem {
@@ -73,6 +93,16 @@ final class VietnameseStatusItem: NSObject, NSMenuDelegate {
         toggle.target = self
         toggle.state = Defaults[.vietnameseTypingOn] ? .on : .off
         menu.addItem(toggle)
+        menu.addItem(.separator())
+
+        let currentMode = Defaults[.vietnameseTypingMode]
+        for mode in VietnameseTypingMode.allCases {
+            let item = NSMenuItem(title: mode.title, action: #selector(selectTypingMode(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            item.state = mode == currentMode ? .on : .off
+            menu.addItem(item)
+        }
         menu.addItem(.separator())
 
         let current = Defaults[.vietnameseInputMethod]
@@ -136,6 +166,13 @@ final class VietnameseStatusItem: NSObject, NSMenuDelegate {
             return
         }
         Defaults[.vietnameseInputMethod] = method
+    }
+
+    @objc private func selectTypingMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let mode = VietnameseTypingMode(rawValue: raw) else {
+            return
+        }
+        Defaults[.vietnameseTypingMode] = mode
     }
 
     @objc private func selectCodeTable(_ sender: NSMenuItem) {

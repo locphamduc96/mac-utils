@@ -58,6 +58,7 @@ struct WindowSettings: View {
 struct VietnameseSettings: View {
     @Default(.vietnameseModuleEnabled) var moduleEnabled
     @Default(.vietnameseTypingOn) var typingOn
+    @Default(.vietnameseTypingMode) var typingMode
     @Default(.vietnameseInputMethod) var inputMethod
     @Default(.vietnameseCodeTable) var codeTable
     @Default(.vietnameseToggleHotkey) var toggleHotkey
@@ -105,6 +106,18 @@ struct VietnameseSettings: View {
                 }
             }
 
+            Picker(selection: $typingMode) {
+                ForEach(VietnameseTypingMode.allCases, id: \.self) { mode in
+                    Text(verbatim: mode.title).tag(mode)
+                }
+            } label: {
+                withDescription {
+                    Text(verbatim: "Cách gõ")
+                    Text(verbatim: typingModeDescription)
+                }
+            }
+            .modifier(PickerViewModifier())
+
             Picker(selection: $inputMethod) {
                 ForEach(VietnameseInputMethod.allCases, id: \.self) { method in
                     Text(verbatim: method.title).tag(method)
@@ -136,6 +149,17 @@ struct VietnameseSettings: View {
             .modifier(PickerViewModifier())
         }
         .modifier(SectionViewModifier())
+    }
+
+    private var typingModeDescription: String {
+        switch typingMode {
+        case .eventTap:
+            return "MacUtils xoá chữ cũ rồi gõ lại khi thêm dấu, nên chữ có thể nháy. Không gạch chân."
+        case .inputMethod where !VietnameseInputSource.isInstalled:
+            return "Chưa cài input source: chạy ./Scripts/install-input-method trong thư mục mac-utils."
+        case .inputMethod:
+            return "Chữ đang gõ có gạch chân và được thay tại chỗ, không nháy, không nuốt chữ. MacUtils tự chọn input source này."
+        }
     }
 
     private var spellingSection: some View {
