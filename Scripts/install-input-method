@@ -1,0 +1,43 @@
+#!/bin/bash -e
+# Builds the "MacUtils Tiếng Việt" input source (InputMethodKit) from the shared typing engine and
+# installs it to ~/Library/Input Methods. Add it afterwards in System Settings → Keyboard →
+# Input Sources → + → Vietnamese.
+
+set -o pipefail
+cd "$(dirname "$0")/.."
+
+IDENTITY="MacUtils Local Signing"
+if ! security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+    IDENTITY="-"
+fi
+
+NAME="MacUtilsVietnamese"
+BUILD_DIR="build/InputMethod"
+APP="$BUILD_DIR/$NAME.app"
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+
+swiftc -O -target "$(uname -m)-apple-macos12.0" -module-name "$NAME" \
+    -framework Cocoa -framework InputMethodKit -framework Carbon \
+    LinearMouse/MacUtils/Vietnamese/Typing/*.swift InputMethod/*.swift \
+    -o "$APP/Contents/MacOS/$NAME"
+cp InputMethod/Info.plist "$APP/Contents/Info.plist"
+sips -s format tiff -z 32 32 LinearMouse/Assets.xcassets/AppIcon.appiconset/Icon-32.png \
+    --out "$APP/Contents/Resources/MenuIcon.tiff" >/dev/null
+codesign --force --sign "$IDENTITY" "$APP"
+
+DEST="$HOME/Library/Input Methods/$NAME.app"
+pkill -x "$NAME" || true
+mkdir -p "$HOME/Library/Input Methods"
+rm -rf "$DEST"
+ditto "$APP" "$DEST"
+
+# Make the input source known without logging out.
+swift - "$DEST" <<'SWIFT'
+import Carbon
+let url = URL(fileURLWithPath: CommandLine.arguments[1]) as CFURL
+let status = TISRegisterInputSource(url)
+print(status == noErr ? "Registered input source." : "TISRegisterInputSource failed: \(status)")
+SWIFT
+echo "Installed $DEST"
+echo "Add it in System Settings → Keyboard → Input Sources → + → Vietnamese → MacUtils Tiếng Việt."

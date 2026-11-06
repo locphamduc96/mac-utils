@@ -31,7 +31,7 @@ struct PermissionAppDragSource: NSViewRepresentable {
             super.init(frame: .zero)
             let icon = NSImageView(image: NSApplication.shared.applicationIconImage)
             icon.imageScaling = .scaleProportionallyUpOrDown
-            let label = NSTextField(labelWithString: "LinearMouse")
+            let label = NSTextField(labelWithString: LinearMouse.appName)
             label.font = .systemFont(ofSize: 14)
             for view in [icon, label] {
                 view.translatesAutoresizingMaskIntoConstraints = false
@@ -48,7 +48,7 @@ struct PermissionAppDragSource: NSViewRepresentable {
             ])
             setAccessibilityElement(true)
             setAccessibilityRole(.image)
-            setAccessibilityLabel("LinearMouse")
+            setAccessibilityLabel(LinearMouse.appName)
             setAccessibilityHelp(NSLocalizedString(
                 "Drag the LinearMouse icon below into the list above.", comment: "Permission setup drag hint"
             ))

@@ -10,4 +10,4 @@ MacUtils (a fork of [LinearMouse](https://github.com/linearmouse/linearmouse), M
 | [Rectangle](https://github.com/rxhanson/Rectangle) | MacUtils window layouts (Almost Maximize, Center Two Thirds) | [Notice](Rectangle.txt) |
 | [PermissionFlow](https://github.com/jaywcjlove/PermissionFlow) | Drag-to-authorize permission guide | [Notice](PermissionFlow.txt) |
 | [yabai](https://github.com/asmvik/yabai) | Focus follows mouse | [Notice](yabai.txt) |
-| [xkey](https://github.com/xmannv/xkey) | MacUtils Vietnamese typing engine (vendored in `MacUtils/Vietnamese/Engine`) and injection approach | [Notice](xkey.txt) |
+| [xkey](https://github.com/xmannv/xkey) | Approach of the MacUtils Vietnamese key injection (terminal pacing, HID tap ordering); TCVN3 / VNI-Windows tables cross-checked | [Notice](xkey.txt) |

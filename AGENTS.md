@@ -9,10 +9,14 @@ Không mở PR / issue lên upstream; quy tắc PR, issue, crowdin của LinearM
   (`PRODUCT_MODULE_NAME`) để test và merge upstream ít xung đột; sản phẩm là `MacUtils.app`, bundle id `com.rhodo.MacUtils`.
 - `LinearMouse/MacUtils/`: code riêng của MacUtils.
   - `Window/`: phím tắt cửa sổ (`WindowLayout` thuần toán, `WindowMover` qua AX, `GlobalHotKeys` qua Carbon).
-  - `Vietnamese/`: bộ gõ (`VietnameseInput` event tap, `VietnameseInjector`, `VietnameseStatusItem`).
-  - `Vietnamese/Engine/`: engine **chép nguyên** từ xkey (commit ghi ở đầu mỗi file). Sửa tối thiểu; app service xkey
-    thiếu thì thêm stub vào `Vietnamese/XKeyShims.swift`, không sửa engine.
-- `LinearMouseUnitTests/MacUtils/`: test của phần MacUtils.
+  - `Vietnamese/`: bộ gõ (`VietnameseInput` event tap, `VietnameseInjector`, `VietnameseStatusItem`,
+    `VietnameseSettingsModel` cài đặt).
+  - `Vietnamese/Typing/`: engine gõ tự viết, chỉ dùng Foundation (âm tiết `VietSyllable`, phím `VietWord`, điều phối
+    `VietTypingEngine`, bảng mã `VietCodeTable`). Dùng chung cho app và input source; không import AppKit / Defaults ở đây.
+- `InputMethod/`: input source "MacUtils Tiếng Việt" (InputMethodKit), ngoài synchronized folder nên không vào target
+  app; build bằng `Scripts/install-input-method` (swiftc + engine ở `Vietnamese/Typing`).
+- `LinearMouseUnitTests/MacUtils/`: test của phần MacUtils. `VietTypingEngineTests` có bộ test sinh mọi âm tiết hợp lệ
+  × 6 thanh × nhiều thứ tự phím (~92 nghìn chuỗi); sửa luật âm tiết thì chạy lại.
 - `project-notes/`: plan, task, kết quả (tiếng Việt).
 
 Sửa code upstream ở mức tối thiểu và có lý do (đổi tên, tắt Sparkle, đường dẫn cấu hình, gắn trang cài đặt, gọi
@@ -29,8 +33,16 @@ xcodebuild -project LinearMouse.xcodeproj -scheme LinearMouse -configuration Deb
 xcodebuild test -project LinearMouse.xcodeproj -scheme LinearMouse -derivedDataPath build/DerivedData \
   CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= -only-testing:LinearMouseUnitTests
 
-# Cài bản Release vào /Applications
+# Cài bản Release vào /Applications (kèm input source)
 ./Scripts/install-macutils
+
+# Chỉ build + cài lại input source
+./Scripts/install-input-method
+
+# Chụp ảnh các trang cài đặt (so trước / sau khi đổi UI)
+TEST_RUNNER_MACUTILS_SNAPSHOT_DIR="$PWD/project-notes/06-reports/assets/<ngày>-<tên>" xcodebuild test \
+  -project LinearMouse.xcodeproj -scheme LinearMouse -derivedDataPath build/DerivedData CODE_SIGN_IDENTITY=- \
+  CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= -only-testing:LinearMouseUnitTests/UISnapshotTests
 ```
 
 Lần chạy test đầu sau khi build sạch đôi khi báo "test runner hung", chạy lại là qua.
@@ -38,8 +50,7 @@ Lần chạy test đầu sau khi build sạch đôi khi báo "test runner hung",
 ## Cập nhật từ upstream
 
 - LinearMouse: `git fetch upstream && git merge --no-ff upstream/main`, rồi build + test.
-- xkey / Rectangle: không theo dõi tự động. Muốn lấy bản sửa của xkey thì chép lại các file trong `Vietnamese/Engine/`,
-  giữ dòng ghi nguồn, cập nhật commit, chạy `VietnameseInputTests`.
+- Rectangle / xkey: không theo dõi. Engine gõ là code tự viết, không đồng bộ với xkey.
 
 ## Quy tắc
 
