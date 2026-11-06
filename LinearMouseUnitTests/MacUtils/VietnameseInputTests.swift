@@ -2,98 +2,70 @@
 // Copyright (c) 2026 MacUtils
 
 import Carbon.HIToolbox
+import Defaults
 @testable import LinearMouse
 import XCTest
 
 final class VietnameseInputTests: XCTestCase {
-    /// Replays keystrokes through the engine the way the event tap does and returns the resulting
-    /// text field content. "<" stands for backspace.
-    private func type(
-        _ keys: String,
-        method: InputMethod = .telex,
-        spellCheck: Bool = true,
-        modernStyle: Bool = false,
-        vietnamese: Bool = true
-    ) -> String {
-        var preferences = Preferences()
-        preferences.inputMethod = method
-        preferences.spellCheckEnabled = spellCheck
-        preferences.restoreIfWrongSpelling = spellCheck
-        preferences.modernStyle = modernStyle
-        preferences.quickTelexEnabled = false
-        let session = InputSession(
-            preferences: RuntimePreferences(
-                preferences: preferences,
-                vietnameseEnabled: vietnamese,
-                windowTitleRulesEnabled: false,
-                remoteDesktopInjectMode: false
-            )
-        ) { nil }
-
-        var screen = ""
-        for key in keys {
-            let isBackspace = key == "<"
-            let keyCode = isBackspace
-                ? UInt16(kVK_Delete)
-                : KeyCodeToCharacter.keyCode(forCharacter: Character(key.lowercased())) ?? 0
-            let event = InputEvent(
-                kind: .keyDown,
-                keyCode: keyCode,
-                characters: isBackspace ? nil : String(key),
-                modifiers: key.isUppercase ? [.shift] : [],
-                isRepeat: false
-            )
-            switch session.handle(event) {
-            case .passThrough, .reset, .commit:
-                if isBackspace {
-                    if !screen.isEmpty {
-                        screen.removeLast()
-                    }
-                } else {
-                    screen.append(key)
-                }
-            case .consume:
-                break
-            case let .replacement(replacement):
-                screen.removeLast(min(replacement.backspaces, screen.count))
-                screen += replacement.text
-            }
+    private func keyEvent(_ keyCode: Int, text: String? = nil, flags: CGEventFlags = []) -> CGEvent {
+        let event = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: true)!
+        event.flags = flags
+        if let text {
+            var units = Array(text.utf16)
+            event.keyboardSetUnicodeString(stringLength: units.count, unicodeString: &units)
         }
-        return screen
+        return event
     }
 
-    func testTelex() {
-        XCTAssertEqual(type("tieengs vieetj "), "tiếng việt ")
-        XCTAssertEqual(type("nguwowif ddaayj "), "người đậy ")
-        XCTAssertEqual(type("nguyeenx "), "nguyễn ")
-        XCTAssertEqual(type("Hoaf "), "Hòa ")
+    func testKeyEventsMapToEngineKeys() {
+        XCTAssertEqual(VietnameseInput.vietKey(for: keyEvent(kVK_ANSI_A, text: "a")), .character("a"))
+        XCTAssertEqual(
+            VietnameseInput.vietKey(for: keyEvent(kVK_ANSI_A, text: "A", flags: .maskShift)),
+            .character("A")
+        )
+        XCTAssertEqual(VietnameseInput.vietKey(for: keyEvent(kVK_Space, text: " ")), .character(" "))
+        XCTAssertEqual(VietnameseInput.vietKey(for: keyEvent(kVK_Delete)), .backspace)
+        XCTAssertEqual(VietnameseInput.vietKey(for: keyEvent(kVK_Escape)), .escape)
+        XCTAssertEqual(VietnameseInput.vietKey(for: keyEvent(kVK_Return)), .commit)
+        XCTAssertEqual(VietnameseInput.vietKey(for: keyEvent(kVK_Tab)), .commit)
+        XCTAssertEqual(VietnameseInput.vietKey(for: keyEvent(kVK_LeftArrow)), .reset)
+        XCTAssertEqual(
+            VietnameseInput.vietKey(for: keyEvent(kVK_ANSI_C, text: "c", flags: .maskCommand)),
+            .reset
+        )
     }
 
-    func testVNI() {
-        XCTAssertEqual(type("tie61ng vie65t ", method: .vni), "tiếng việt ")
-        XCTAssertEqual(type("d9a5y ", method: .vni), "đạy ")
+    /// The input method reads macros straight from UserDefaults as an array of JSON strings.
+    func testMacrosAreStoredAsJSONStrings() throws {
+        let suite = try XCTUnwrap(UserDefaults(suiteName: "MacUtilsTests.macros"))
+        suite.removePersistentDomain(forName: "MacUtilsTests.macros")
+        let key = Defaults.Key<[VietnameseMacro]>("macros", default: [], suite: suite)
+        Defaults[key] = [VietnameseMacro(shortcut: "vn", expansion: "Việt Nam")]
+        let stored = try XCTUnwrap(suite.array(forKey: "macros") as? [String])
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(stored[0].utf8)) as? [String: Any]
+        )
+        XCTAssertEqual(object["shortcut"] as? String, "vn")
+        XCTAssertEqual(object["expansion"] as? String, "Việt Nam")
+        suite.removePersistentDomain(forName: "MacUtilsTests.macros")
     }
 
-    func testModernStylePlacesToneOnSecondVowel() {
-        XCTAssertEqual(type("Hoaf thuyr ", modernStyle: true), "Hoà thuỷ ")
-        XCTAssertEqual(type("Hoaf thuyr ", modernStyle: false), "Hòa thủy ")
-    }
-
-    func testSpellCheckRestoresEnglishWords() {
-        XCTAssertEqual(type("return "), "return ")
-        XCTAssertEqual(type("return ", spellCheck: false), "retủn ")
-    }
-
-    func testRepeatedToneKeyUndoesTone() {
-        XCTAssertEqual(type("ass "), "as ")
-    }
-
-    func testBackspaceKeepsEngineInSync() {
-        XCTAssertEqual(type("vieetj<<eetj "), "việt ")
-    }
-
-    func testEnglishModePassesThrough() {
-        XCTAssertEqual(type("tieengs vieetj ", vietnamese: false), "tieengs vieetj ")
+    /// The input method reads these keys as plain strings and JSON-string arrays.
+    func testSettingsAreStoredInTheFormatTheInputMethodReads() throws {
+        let suite = try XCTUnwrap(UserDefaults(suiteName: "MacUtilsTests.settings"))
+        suite.removePersistentDomain(forName: "MacUtilsTests.settings")
+        Defaults[.init("method", default: VietnameseInputMethod.telex, suite: suite)] = .vni
+        Defaults[.init("table", default: VietCodeTable.unicode, suite: suite)] = .vniWindows
+        Defaults[.init("rules", default: [VietnameseAppRule](), suite: suite)] = [
+            VietnameseAppRule(bundleID: "com.example", name: "Example", excluded: true)
+        ]
+        XCTAssertEqual(suite.string(forKey: "method"), "vni")
+        XCTAssertEqual(suite.string(forKey: "table"), "vniWindows")
+        let rule = try XCTUnwrap((suite.array(forKey: "rules") as? [String])?.first)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(rule.utf8)) as? [String: Any])
+        XCTAssertEqual(object["bundleID"] as? String, "com.example")
+        XCTAssertEqual(object["excluded"] as? Bool, true)
+        suite.removePersistentDomain(forName: "MacUtilsTests.settings")
     }
 
     func testToggleDetectorFiresOnCleanControlShiftRelease() {

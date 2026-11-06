@@ -65,7 +65,11 @@ final class VietnameseStatusItem: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
 
-        let toggle = NSMenuItem(title: "Gõ tiếng Việt  (⌃⇧)", action: #selector(toggleTyping), keyEquivalent: "")
+        let toggle = NSMenuItem(
+            title: "Gõ tiếng Việt  (\(Defaults[.vietnameseToggleHotkey].shortTitle))",
+            action: #selector(toggleTyping),
+            keyEquivalent: ""
+        )
         toggle.target = self
         toggle.state = Defaults[.vietnameseTypingOn] ? .on : .off
         menu.addItem(toggle)
@@ -79,6 +83,19 @@ final class VietnameseStatusItem: NSObject, NSMenuDelegate {
             item.state = method == current ? .on : .off
             menu.addItem(item)
         }
+
+        let codeTableMenu = NSMenu()
+        let currentTable = Defaults[.vietnameseCodeTable]
+        for table in VietCodeTable.allCases {
+            let item = NSMenuItem(title: table.title, action: #selector(selectCodeTable(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = table.rawValue
+            item.state = table == currentTable ? .on : .off
+            codeTableMenu.addItem(item)
+        }
+        let codeTableItem = NSMenuItem(title: "Bảng mã: \(currentTable.title)", action: nil, keyEquivalent: "")
+        codeTableItem.submenu = codeTableMenu
+        menu.addItem(codeTableItem)
         menu.addItem(.separator())
 
         let settings = NSMenuItem(title: "Cài đặt MacUtils…", action: #selector(openSettings), keyEquivalent: ",")
@@ -119,6 +136,13 @@ final class VietnameseStatusItem: NSObject, NSMenuDelegate {
             return
         }
         Defaults[.vietnameseInputMethod] = method
+    }
+
+    @objc private func selectCodeTable(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let table = VietCodeTable(rawValue: raw) else {
+            return
+        }
+        Defaults[.vietnameseCodeTable] = table
     }
 
     @objc private func openSettings() {
