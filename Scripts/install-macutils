@@ -1,0 +1,37 @@
+#!/bin/bash -e
+# Builds MacUtils (Release) and installs it to /Applications/MacUtils.app.
+# Signs with "MacUtils Local Signing" when present (see create-local-signing-cert), otherwise ad-hoc;
+# ad-hoc builds lose the Accessibility permission on every reinstall.
+
+set -o pipefail
+cd "$(dirname "$0")/.."
+
+IDENTITY="MacUtils Local Signing"
+if ! security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+    echo "warning: '$IDENTITY' not found, signing ad-hoc." >&2
+    IDENTITY="-"
+fi
+
+DERIVED_DATA="build/DerivedData"
+xcodebuild -project LinearMouse.xcodeproj -scheme LinearMouse -configuration Release \
+    -derivedDataPath "$DERIVED_DATA" \
+    CODE_SIGN_IDENTITY="$IDENTITY" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= OTHER_CODE_SIGN_FLAGS=--timestamp=none \
+    build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+
+APP="$DERIVED_DATA/Build/Products/Release/MacUtils.app"
+test -d "$APP"
+
+if pgrep -x MacUtils >/dev/null; then
+    osascript -e 'tell application "MacUtils" to quit' || true
+    sleep 1
+fi
+
+# Show the whole UI in Vietnamese (LinearMouse ships a complete vi translation).
+defaults write com.rhodo.MacUtils AppleLanguages -array vi
+
+ditto "$APP" /Applications/MacUtils.app.new
+rm -rf /Applications/MacUtils.app
+mv /Applications/MacUtils.app.new /Applications/MacUtils.app
+
+codesign -dv /Applications/MacUtils.app 2>&1 | grep -E "Authority|Signature=|Identifier="
+echo "Installed /Applications/MacUtils.app"

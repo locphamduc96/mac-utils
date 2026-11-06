@@ -27,14 +27,12 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>LinearMouse uses Bluetooth to read battery levels and receive battery updates from your mouse and trackpad.</string>
+	<string>MacUtils uses Bluetooth to read battery levels and receive battery updates from your mouse and trackpad.</string>
 	<key>NSMainStoryboardFile</key>
 	<string>Main</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>SUFeedURL</key>
-	<string>https://linearmouse.app/appcast.xml</string>
-	<key>SUScheduledCheckInterval</key>
-	<integer>604800</integer>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
 </dict>
 </plist>

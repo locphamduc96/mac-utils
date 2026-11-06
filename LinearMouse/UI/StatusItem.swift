@@ -167,7 +167,8 @@ class StatusItem: NSObject, NSMenuDelegate {
     private func updateStatusItemPresentation() {
         let currentBatteryLevel = currentDeviceBatteryLevel()
         let menuBarBatteryDisplayMode = Defaults[.menuBarBatteryDisplayMode]
-        let shouldBeVisible = Self.menuBarIsVisible(
+        // MacUtils: the V / E item carries this menu while the Vietnamese module is on.
+        let shouldBeVisible = !Defaults[.vietnameseModuleEnabled] && Self.menuBarIsVisible(
             currentBatteryLevel: currentBatteryLevel,
             visibilityMode: Defaults[.menuBarVisibilityMode],
             batteryDisplayMode: menuBarBatteryDisplayMode
@@ -383,6 +384,11 @@ class StatusItem: NSObject, NSMenuDelegate {
         .tieToLifetime(of: self)
 
         Defaults.observe(.menuBarBatteryDisplayMode) { [weak self] _ in
+            self?.updateStatusItemPresentation()
+        }
+        .tieToLifetime(of: self)
+
+        Defaults.observe(.vietnameseModuleEnabled) { [weak self] _ in
             self?.updateStatusItemPresentation()
         }
         .tieToLifetime(of: self)

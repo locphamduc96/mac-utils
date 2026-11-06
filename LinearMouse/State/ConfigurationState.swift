@@ -34,7 +34,7 @@ class ConfigurationState: ObservableObject {
             .first {
             urls.append(
                 URL(
-                    fileURLWithPath: "linearmouse/linearmouse.json",
+                    fileURLWithPath: "mac-utils/mouse.json",
                     relativeTo: applicationSupportURL
                 )
             )
@@ -42,12 +42,65 @@ class ConfigurationState: ObservableObject {
 
         urls.append(
             URL(
-                fileURLWithPath: ".config/linearmouse/linearmouse.json",
+                fileURLWithPath: ".config/mac-utils/mouse.json",
                 relativeTo: FileManager.default.homeDirectoryForCurrentUser
             )
         )
 
         return urls
+    }
+
+    /// Files written by a standalone LinearMouse install, imported once on first launch.
+    private var legacyConfigurationPaths: [URL] {
+        var urls: [URL] = []
+        if let applicationSupportURL = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first {
+            urls.append(applicationSupportURL.appendingPathComponent("linearmouse/linearmouse.json"))
+        }
+        urls.append(
+            FileManager.default
+                .homeDirectoryForCurrentUser
+                .appendingPathComponent(".config/linearmouse/linearmouse.json")
+        )
+        return urls
+    }
+
+    private func importLegacyConfigurationIfNeeded() {
+        #if DEBUG
+            if ProcessEnvironment.isRunningTest {
+                return
+            }
+        #endif
+
+        let fileManager = FileManager.default
+        guard !configurationPaths.contains(where: { fileManager.fileExists(atPath: $0.path) }),
+              let legacyURL = legacyConfigurationPaths.first(where: { fileManager.fileExists(atPath: $0.path) })
+        else {
+            return
+        }
+
+        do {
+            try Self.importConfiguration(from: legacyURL, to: configurationPath)
+        } catch {
+            os_log(
+                "Failed to import LinearMouse configuration: %{public}@",
+                log: Self.log,
+                type: .error,
+                error.localizedDescription
+            )
+        }
+    }
+
+    /// Copies the file's contents, not the file itself: a dotfiles symlink must not be carried over, or saving
+    /// MacUtils settings would rewrite the LinearMouse configuration it points to.
+    static func importConfiguration(from source: URL, to destination: URL) throws {
+        let data = try Data(contentsOf: source.resolvingSymlinksInPath())
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try data.write(to: destination, options: .withoutOverwriting)
     }
 
     var configurationPath: URL {
@@ -163,6 +216,8 @@ extension ConfigurationState {
         defer {
             loading = false
         }
+
+        importLegacyConfigurationIfNeeded()
 
         do {
             configuration = try Configuration.load(from: configurationPath)

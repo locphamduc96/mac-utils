@@ -36,7 +36,7 @@ class SettingsState: ObservableObject {
     }
 
     enum Navigation: String, CaseIterable, Hashable {
-        case pointer, scrolling, buttons, general
+        case pointer, scrolling, buttons, window, vietnamese, general
 
         var title: LocalizedStringKey {
             switch self {
@@ -46,8 +46,33 @@ class SettingsState: ObservableObject {
                 return "Scrolling"
             case .buttons:
                 return "Buttons"
+            case .window:
+                return "Cửa sổ"
+            case .vietnamese:
+                return "Tiếng Việt"
             case .general:
                 return "General"
+            }
+        }
+
+        var sidebarTitle: String {
+            switch self {
+            case .window:
+                return "Cửa sổ"
+            case .vietnamese:
+                return "Tiếng Việt"
+            default:
+                return NSLocalizedString(rawValue.capitalized, comment: "")
+            }
+        }
+
+        /// Device-specific pages show the device / app / display pickers in the toolbar.
+        var isSchemeSpecific: Bool {
+            switch self {
+            case .pointer, .scrolling, .buttons:
+                return true
+            case .window, .vietnamese, .general:
+                return false
             }
         }
 
@@ -59,6 +84,10 @@ class SettingsState: ObservableObject {
                 return "Scrolling"
             case .buttons:
                 return "Buttons"
+            case .window:
+                return "macwindow"
+            case .vietnamese:
+                return "character.bubble"
             case .general:
                 return "General"
             }

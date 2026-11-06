@@ -17,7 +17,8 @@ class AutoUpdateManager: NSObject {
     override init() {
         super.init()
         _controller = SPUStandardUpdaterController(
-            startingUpdater: true,
+            // MacUtils is a local fork: never pull LinearMouse releases over it.
+            startingUpdater: false,
             updaterDelegate: self,
             userDriverDelegate: nil
         )

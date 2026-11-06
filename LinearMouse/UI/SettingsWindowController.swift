@@ -232,8 +232,14 @@ class SettingsSidebarViewController: NSViewController, NSTableViewDataSource, NS
             ])
         }
 
-        cell.imageView?.image = NSImage(named: item.imageName)
-        cell.textField?.stringValue = NSLocalizedString(item.rawValue.capitalized, comment: "")
+        if let image = NSImage(named: item.imageName) {
+            cell.imageView?.image = image
+        } else if #available(macOS 11.0, *) {
+            cell.imageView?.image = NSImage(systemSymbolName: item.imageName, accessibilityDescription: nil)
+        } else {
+            cell.imageView?.image = nil
+        }
+        cell.textField?.stringValue = item.sidebarTitle
 
         return cell
     }
@@ -276,6 +282,10 @@ class SettingsDetailViewController: NSViewController {
             content = AnyView(ScrollingSettings())
         case .buttons:
             content = AnyView(ButtonsSettings())
+        case .window:
+            content = AnyView(WindowSettings())
+        case .vietnamese:
+            content = AnyView(VietnameseSettings())
         case .general:
             content = AnyView(GeneralSettings())
         case .none:
@@ -353,7 +363,7 @@ class SettingsToolbar: NSToolbar, NSToolbarDelegate {
         guard let navigation = splitViewController?.currentNavigation else {
             return false
         }
-        return navigation != .general
+        return navigation.isSchemeSpecific
     }
 
     // MARK: - NSToolbarDelegate
