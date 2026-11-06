@@ -1,0 +1,291 @@
+// Vendored from https://github.com/xmannv/xkey @ 398e78e (MIT License, see ThirdPartyNotices/xkey.txt).
+// Keep local edits minimal so upstream fixes can be re-applied.
+
+//
+//  Preferences.swift
+//  XKey
+//
+//  User preferences and settings
+//
+
+import Foundation
+import Cocoa
+
+enum AppLanguage: String, Codable, CaseIterable {
+    case system = "system"
+    case vi = "vi"
+    case en = "en"
+    case zhHans = "zh-Hans"
+
+    var displayName: String {
+        switch self {
+        case .system: return String(localized: "Theo hệ thống")
+        case .vi: return "Tiếng Việt"
+        case .en: return "English"
+        case .zhHans: return "简体中文"
+        }
+    }
+
+    var localeIdentifier: String? {
+        switch self {
+        case .system: return nil
+        case .vi: return "vi"
+        case .en: return "en"
+        case .zhHans: return "zh-Hans"
+        }
+    }
+
+    /// Apply the user-selected language by writing to `UserDefaults.standard["AppleLanguages"]`.
+    ///
+    /// Reads the raw value from `UserDefaults.standard["appLanguage"]`, populated by
+    /// `PreferencesViewModel.save()` and kept in sync by `SharedSettings.importSettings()`.
+    /// Defaults to Vietnamese when no value has been stored yet — XKey is a Vietnamese input
+    /// method, so first-launch users see the Vietnamese UI regardless of macOS locale.
+    ///
+    /// Timing caveat: macOS resolves `AppleLanguages` when `Bundle.main` initializes, which
+    /// happens before the app's `init()` runs. Calling this method during launch therefore
+    /// affects the *next* launch, not the current one — that is why the Language picker shows
+    /// a restart confirmation.
+    static func applyLanguage() {
+        let saved = UserDefaults.standard.string(forKey: "appLanguage") ?? AppLanguage.vi.rawValue
+        let lang = AppLanguage(rawValue: saved) ?? .vi
+        if let locale = lang.localeIdentifier {
+            UserDefaults.standard.set([locale], forKey: "AppleLanguages")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        }
+    }
+}
+
+enum MenuBarIconStyle: String, Codable, CaseIterable {
+    case x = "X"
+    case v = "V"
+    case emoji = "emoji"
+    
+    // Returns raw Vietnamese key (source language). UI wraps with LocalizedStringKey for catalog lookup.
+    var displayName: String {
+        switch self {
+        case .x: return "Chữ X"
+        case .v: return "Chữ V"
+        case .emoji: return "Emoji 🇻🇳 / 🇬🇧"
+        }
+    }
+}
+
+
+
+struct Preferences: Codable {
+    // Hotkey settings
+    var toggleHotkey: Hotkey = Hotkey(keyCode: 9, modifiers: [.command, .shift]) // Default: Cmd+Shift+V
+    var undoTypingEnabled: Bool = false          // Enable undo typing with Esc key
+    var undoTypingHotkey: Hotkey?                 // Custom hotkey for undo typing (nil = use Esc)
+    var beepOnToggle: Bool = false               // Play beep sound when toggle Vietnamese
+    
+    // Input settings
+    var inputMethod: InputMethod = .telex
+    var codeTable: CodeTable = .unicode
+    var modernStyle: Bool = false
+    var spellCheckEnabled: Bool = false
+    
+    // Advanced features
+    var quickTelexEnabled: Bool = true           // cc→ch, gg→gi, etc.
+    var quickStartConsonantEnabled: Bool = false // f→ph, j→gi, w→qu
+    var quickEndConsonantEnabled: Bool = false   // g→ng, h→nh, k→ch
+    var upperCaseFirstChar: Bool = false         // Auto capitalize first letter
+    var capitalizeOnlyAfterSpace: Bool = true    // Sub-option: only capitalize after . ? ! when followed by a space (newline still always caps)
+    var restoreIfWrongSpelling: Bool = true      // Restore if wrong spelling
+    var instantRestoreOnWrongSpelling: Bool = false // Restore immediately when wrong spelling detected
+    var skipRestoreForUppercaseVietnameseAbbreviations: Bool = false // Skip restore for all-caps Vietnamese abbreviations
+    var customConsonantEnabled: Bool = false         // Whether custom consonants feature is enabled
+    var customConsonants: String = "Z,F,W,J"         // Custom consonants list (always stored, even when disabled)
+    
+    /// Default custom consonants when feature is reset
+    static let defaultCustomConsonants = "Z,F,W,J"
+    
+    /// Computed: get individual consonant list from the comma-separated string
+    var customConsonantList: [String] {
+        guard !customConsonants.isEmpty else { return [] }
+        return customConsonants.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces).uppercased() }
+    }
+
+    var tempOffToolbarEnabled: Bool = false      // Show floating toolbar for temp off controls
+    var tempOffToolbarHotkey: Hotkey = Hotkey(keyCode: 0x11, modifiers: [.command, .option])  // Default: Cmd+Option+T
+    var convertToolHotkey: Hotkey = Hotkey(keyCode: 0, modifiers: [])  // Default: disabled (no hotkey)
+    var addToDictionaryHotkey: Hotkey = Hotkey(keyCode: 0, modifiers: [])  // Default: disabled (no hotkey)
+
+    // Macro settings
+    var macroEnabled: Bool = false               // Enable text shortcuts
+    var macroInEnglishMode: Bool = false         // Use macro in English mode
+    var autoCapsMacro: Bool = false              // Auto capitalize macro output
+    var addSpaceAfterMacro: Bool = false         // Add space after macro expansion
+    var yieldMacroToSystemReplacement: Bool = false  // Skip macros whose shortcut collides with macOS Text Replacements
+    
+    // Smart switch settings
+    var smartSwitchEnabled: Bool = true         // Remember language per app
+
+    
+    // Debug settings
+    var debugModeEnabled: Bool = false           // Show debug window (even in production)
+    var debugHotkey: Hotkey = Hotkey(keyCode: 0x02, modifiers: [.command, .option])  // Default: Cmd+Option+D
+    var openDebugOnLaunch: Bool = false          // Open debug window when app starts
+    
+    // IMKit settings (experimental)
+    var imkitUseMarkedText: Bool = false         // Show underline when composing (IMKit mode)
+    var switchToXKeyHotkey: Hotkey?              // Hotkey to quickly switch to XKeyIM input source
+    
+    // UI settings
+    var showDockIcon: Bool = false               // Show icon in Dock (menu bar always visible)
+    var startAtLogin: Bool = false
+    var menuBarIconStyle: MenuBarIconStyle = .x  // Icon style for menubar
+    var statusBarClickToToggle: Bool = false     // Left-click menubar icon toggles input instead of opening menu (right-click opens menu)
+    var appLanguage: AppLanguage = .vi
+    var autoCheckForUpdates: Bool = true
+    
+    // Excluded apps - apps where Vietnamese input is disabled
+    var excludedApps: [ExcludedApp] = []
+    var exclusionRulesEnabled: Bool = true          // Master switch for exclusion rules (can be toggled via hotkey)
+    var toggleExclusionHotkey: Hotkey = Hotkey(keyCode: 0, modifiers: [])  // Default: disabled (no hotkey)
+
+    // Remote desktop injection mode (experimental)
+    // false (default): remote desktop apps (RustDesk/TeamViewer/etc) are in passthrough —
+    //                  Vietnamese typing handled by IME on remote machine.
+    // true: XKey injects Vietnamese into remote desktop apps via clipboard paste,
+    //       so the remote machine receives final Vietnamese text. Useful when remote
+    //       machine has no Vietnamese IME available.
+    var remoteDesktopInjectMode: Bool = false
+
+    // Remote desktop target mode
+    // false (default): this machine is the controller (machine A) — session tap is lazy,
+    //                  activated only while a remote desktop client is frontmost.
+    // true: this machine is being remoted into (machine B) — session tap is always-on
+    //       so remote desktop daemon events (which bypass HID tap) are intercepted.
+    var isRemoteDesktopTarget: Bool = false
+    
+    // Window Title Rules toggle
+    var windowTitleRulesEnabled: Bool = true         // Master switch for Window Title Rules (can be toggled via hotkey)
+    var toggleWindowRulesHotkey: Hotkey = Hotkey(keyCode: 0, modifiers: [])  // Default: disabled (no hotkey)
+    
+    // Translation settings
+    var translationEnabled: Bool = false         // Enable translation feature
+    var translationHotkey: Hotkey = Hotkey(keyCode: 0x11, modifiers: [.command, .shift])  // Default: Cmd+Shift+T
+    var translationSourceLanguageCode: String = "auto"     // ISO 639-1 code
+    var translationTargetLanguageCode: String = "vi"       // ISO 639-1 code
+    var translationReplaceOriginal: Bool = true  // Replace selected text with translation (target direction)
+    var translationCopyToClipboard: Bool = true  // Auto copy translation to clipboard (target direction)
+    var translationShowPopup: Bool = false        // Show popup overlay (target direction)
+    var translationToolbarEnabled: Bool = false   // Show floating toolbar for quick language selection
+    var translateToSourceHotkey: Hotkey = Hotkey(keyCode: 0, modifiers: [])  // Default: disabled (no hotkey)
+    var translateToSourceReplaceOriginal: Bool = false  // Replace text (source direction, default off)
+    var translateToSourceCopyToClipboard: Bool = false  // Copy to clipboard (source direction, default off)
+    var translateToSourceShowPopup: Bool = true         // Show popup overlay (source direction, default on)
+    var translateToSourceAutoHideSeconds: Int = 4      // Auto-hide seconds for source popup
+    var translationResultAutoHideSeconds: Int = 4  // 0 = don't auto-hide, click outside to dismiss
+    
+    /// Get source language as TranslationLanguage object
+    var translationSourceLanguage: TranslationLanguage {
+        get { TranslationLanguage.find(byCode: translationSourceLanguageCode) }
+        set { translationSourceLanguageCode = newValue.code }
+    }
+    
+    /// Get target language as TranslationLanguage object
+    var translationTargetLanguage: TranslationLanguage {
+        get { TranslationLanguage.find(byCode: translationTargetLanguageCode) }
+        set { translationTargetLanguageCode = newValue.code }
+    }
+}
+
+// MARK: - Excluded App Model
+
+struct ExcludedApp: Codable, Identifiable, Equatable {
+    var id: String { bundleIdentifier }
+    let bundleIdentifier: String
+    let appName: String
+    let appPath: String?
+    
+    init(bundleIdentifier: String, appName: String, appPath: String? = nil) {
+        self.bundleIdentifier = bundleIdentifier
+        self.appName = appName
+        self.appPath = appPath
+    }
+}
+
+struct Hotkey: Codable, Equatable {
+    var keyCode: UInt16
+    var modifiers: ModifierFlags
+    var isModifierOnly: Bool  // True if hotkey is just modifiers (e.g., Ctrl+Shift)
+    
+    init(keyCode: UInt16, modifiers: ModifierFlags, isModifierOnly: Bool = false) {
+        self.keyCode = keyCode
+        self.modifiers = modifiers
+        self.isModifierOnly = isModifierOnly
+    }
+
+    /// True when the user cleared the hotkey: no key and no modifiers, so nothing
+    /// can ever match it. Distinct from `keyCode == 0`, which a modifier-only
+    /// hotkey also has.
+    var isUnset: Bool {
+        keyCode == 0 && modifiers.isEmpty
+    }
+
+    var displayString: String {
+        var parts: [String] = []
+        
+        // Fn key first (if present)
+        if modifiers.contains(.function) { parts.append("Fn") }
+        if modifiers.contains(.control) { parts.append("⌃") }
+        if modifiers.contains(.option) { parts.append("⌥") }
+        if modifiers.contains(.shift) { parts.append("⇧") }
+        if modifiers.contains(.command) { parts.append("⌘") }
+        
+        // For modifier-only hotkeys (including Fn-only), don't add key character
+        if isModifierOnly {
+            return parts.joined()
+        }
+        
+        // Convert keyCode to character
+        if let char = keyCodeToCharacter(keyCode) {
+            parts.append(char.uppercased())
+        } else if keyCode != 0 {
+            parts.append("?")
+        }
+        
+        return parts.joined()
+    }
+    
+    private func keyCodeToCharacter(_ keyCode: UInt16) -> String? {
+        let mapping: [UInt16: String] = [
+            0x00: "A", 0x0B: "B", 0x08: "C", 0x02: "D", 0x0E: "E",
+            0x03: "F", 0x05: "G", 0x04: "H", 0x22: "I", 0x26: "J",
+            0x28: "K", 0x25: "L", 0x2E: "M", 0x2D: "N", 0x1F: "O",
+            0x23: "P", 0x0C: "Q", 0x0F: "R", 0x01: "S", 0x11: "T",
+            0x20: "U", 0x09: "V", 0x0D: "W", 0x07: "X", 0x10: "Y",
+            0x06: "Z",
+            0x31: "Space", 0x24: "Return", 0x35: "Esc"
+        ]
+        return mapping[keyCode]
+    }
+}
+
+struct ModifierFlags: OptionSet, Codable {
+    let rawValue: UInt
+    
+    static let control = ModifierFlags(rawValue: 1 << 0)
+    static let option = ModifierFlags(rawValue: 1 << 1)
+    static let shift = ModifierFlags(rawValue: 1 << 2)
+    static let command = ModifierFlags(rawValue: 1 << 3)
+    static let function = ModifierFlags(rawValue: 1 << 4)  // Fn key support
+    
+    init(rawValue: UInt) {
+        self.rawValue = rawValue
+    }
+    
+    init(from eventFlags: NSEvent.ModifierFlags) {
+        var flags: ModifierFlags = []
+        if eventFlags.contains(.control) { flags.insert(.control) }
+        if eventFlags.contains(.option) { flags.insert(.option) }
+        if eventFlags.contains(.shift) { flags.insert(.shift) }
+        if eventFlags.contains(.command) { flags.insert(.command) }
+        if eventFlags.contains(.function) { flags.insert(.function) }
+        self = flags
+    }
+}

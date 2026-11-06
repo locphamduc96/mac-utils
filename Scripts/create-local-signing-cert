@@ -1,0 +1,37 @@
+#!/bin/bash -e
+# Creates a self-signed code signing identity "MacUtils Local Signing" in the login keychain.
+# A fixed identity keeps the app's code requirement stable, so the Accessibility permission
+# survives rebuilds. The certificate only works on this Mac; no Apple account is needed.
+
+NAME="MacUtils Local Signing"
+
+if security find-certificate -c "$NAME" >/dev/null 2>&1; then
+    echo "'$NAME' already exists in the keychain."
+    exit 0
+fi
+
+WORK_DIR=$(mktemp -d)
+trap 'rm -rf "$WORK_DIR"' EXIT
+cd "$WORK_DIR"
+
+cat > cert.cnf <<EOF
+[ req ]
+distinguished_name = dn
+x509_extensions = ext
+prompt = no
+[ dn ]
+CN = $NAME
+[ ext ]
+basicConstraints = critical,CA:false
+keyUsage = critical,digitalSignature
+extendedKeyUsage = critical,codeSigning
+EOF
+
+openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 3650 -config cert.cnf 2>/dev/null
+PASSWORD=$(openssl rand -hex 16)
+openssl pkcs12 -export -legacy -inkey key.pem -in cert.pem -out cert.p12 -passout "pass:$PASSWORD" -name "$NAME" 2>/dev/null \
+    || openssl pkcs12 -export -inkey key.pem -in cert.pem -out cert.p12 -passout "pass:$PASSWORD" -name "$NAME"
+
+security import cert.p12 -k "$HOME/Library/Keychains/login.keychain-db" -P "$PASSWORD" -T /usr/bin/codesign
+
+echo "Created '$NAME'."

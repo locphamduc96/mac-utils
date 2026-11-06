@@ -465,7 +465,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = "$(LM_DEPLOYMENT_TARGET)";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = LinearMouse;
+				PRODUCT_NAME = MacUtils;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "LinearMouse/LinearMouse-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -488,7 +489,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = "$(LM_DEPLOYMENT_TARGET)";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = LinearMouse;
+				PRODUCT_NAME = MacUtils;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "LinearMouse/LinearMouse-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -514,7 +516,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinearMouse.app/Contents/MacOS/LinearMouse";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacUtils.app/Contents/MacOS/MacUtils";
 			};
 			name = Debug;
 		};
@@ -537,7 +539,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinearMouse.app/Contents/MacOS/LinearMouse";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacUtils.app/Contents/MacOS/MacUtils";
 			};
 			name = Release;
 		};
