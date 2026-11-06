@@ -1,6 +1,6 @@
 # MacUtils: hướng dẫn cho agent
 
-Fork của LinearMouse, chạy riêng trên máy owner. Remote `upstream` = `linearmouse/linearmouse`; chưa có `origin`.
+Fork của LinearMouse, chạy riêng trên máy owner. Remote `upstream` = `linearmouse/linearmouse`; `origin` = `locphamduc96/mac-utils` (public, GitHub Actions đã tắt vì workflow upstream cần secret ký của LinearMouse). Repo này commit bằng email noreply của tài khoản cá nhân (`git config` riêng repo).
 Không mở PR / issue lên upstream; quy tắc PR, issue, crowdin của LinearMouse không áp dụng ở đây.
 
 ## Bố cục
