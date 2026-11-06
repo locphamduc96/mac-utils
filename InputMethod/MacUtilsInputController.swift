@@ -156,8 +156,10 @@ final class MacUtilsInputController: IMKInputController {
 enum SharedSettings {
     private static let defaults = UserDefaults(suiteName: "com.rhodo.MacUtils")
 
+    /// Module switched on and Vietnamese (V) selected.
     static var typingOn: Bool {
-        defaults?.object(forKey: "macUtils.vietnamese.typingOn") as? Bool ?? true
+        let moduleEnabled = defaults?.object(forKey: "macUtils.vietnamese.moduleEnabled") as? Bool ?? true
+        return moduleEnabled && defaults?.object(forKey: "macUtils.vietnamese.typingOn") as? Bool ?? true
     }
 
     static func isExcluded(bundleID: String?) -> Bool {

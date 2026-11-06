@@ -131,8 +131,23 @@ Review: Codex, 2 vòng (`~/agent-tasks/mac-utils/task-002/review-task-002.md`, `
 | 10 | P2 | Chờ chèn chặn tap không giới hạn | Sửa: chờ tối đa 700 ms |
 | r2-1 | P2 | Lần chèn chậm kế tiếp vẫn chờ semaphore vô hạn | Sửa: `DispatchGroup` + hàng đợi tuần tự, không còn chờ vô hạn trên luồng tap |
 
+## Sửa sau góp ý owner (2026-11-06)
+
+| Owner báo | Nguyên nhân | Sửa |
+| --- | --- | --- |
+| Telegram nuốt chữ | Chế độ nhanh gửi backspace + chữ dồn một lúc | Khoảng trễ ngắn như xkey (1 ms / backspace, 3 ms trước chữ, 1,5 ms / đoạn, 5 ms chờ) |
+| Chữ nháy lùi rồi nhảy tới | Bản chất cách bắt phím (xoá rồi gõ lại) | Thêm "Cách gõ": Bắt phím / Input source macOS (thay tại chỗ, không nháy), đổi trong cài đặt và menu V / E; MacUtils tự chọn input source hoặc trả về bàn phím ABC; chọn thất bại thì quay về Bắt phím |
+| Icon V / E muốn trong suốt, viền trắng | — | Chữ rỗng chỉ có viền, ảnh template theo màu thanh menu (`08-icon-thanh-menu.png`) |
+| `doidor` không ra "đổi" | `dd` chỉ nhận ngay sau d đầu từ; dấu mũ gõ sau bị chặn khi sau nó còn nguyên âm | `d` thành đ ở bất kỳ đâu khi từ bắt đầu bằng d; dấu mũ gõ sau lúc nào cũng được |
+| `heset` không ra "hết" | Luật giữ "these" chặn dấu mũ gõ sau dấu thanh | Bỏ luật; these / there / here / reset / did / dad / queue vào danh sách tiếng Anh |
+| `laf` ra "aà" (terminal) | Vòng sửa review chuyển phím chèn chậm xuống annotated session, backspace vượt phím `a` còn đang qua tap của app khác | Tap ở HID thì gửi vào session tap (giữ thứ tự); chỉ dùng annotated session khi tap dự phòng ở session |
+
+Review phần sửa: Codex 1 vòng (`review-task-002-followup.md`): P2 chọn input source thất bại vẫn ở chế độ input source → sửa (quay về Bắt phím); P2 gõ tắt dài ngủ trên luồng tap → sửa (chữ > 40 ký tự đi đường chèn chậm).
+
 ## Chưa làm / để lại
 
 - Gõ thật trên máy owner (event tap và input source).
+- Quyền Accessibility vẫn mất sau mỗi lần cài lại dù app ký bằng chứng chỉ tự ký (designated requirement cố định
+  theo chứng chỉ); log TCC bị ẩn, chưa rõ nguyên nhân.
 - Danh sách từ tiếng Anh ưu tiên là cố định trong code, chưa sửa được trong cài đặt.
 - Input source chưa có menu riêng (chọn kiểu gõ / bảng mã trong app MacUtils, input source đọc theo).

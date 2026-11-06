@@ -21,7 +21,6 @@ struct VietWord: Equatable {
     private var toneUndone = false
     private var markUndone = false
     private var strokeUndone = false
-    private var lastKey: Character?
 
     var isEmpty: Bool {
         letters.isEmpty
@@ -68,7 +67,6 @@ struct VietWord: Equatable {
             appendLiteral(key)
         }
         completeHorns()
-        lastKey = lower
     }
 
     // MARK: - Modifiers
@@ -93,9 +91,9 @@ struct VietWord: Equatable {
                 return applyDoubledVowel(lower, key: key)
             case "w":
                 return applyHorn(targets: ["a", "o", "u"], key: key, standalone: method == .telex)
-            // Only right after the initial d, so English "did" / "dad" are not touched.
+            // Anywhere in the word when it starts with d ("doid" → "đoi"); Vietnamese has no final d.
             case "d":
-                return letters.count == 1 && applyStroke(key: key)
+                return applyStroke(key: key)
             default:
                 return false
             }
@@ -167,20 +165,9 @@ struct VietWord: Equatable {
         return true
     }
 
-    /// Telex "aa" / "ee" / "oo". Typed later in the word ("tien" + "e" → "tiên") it only counts when just final
-    /// consonants follow the vowel, and after a tone only if there is a final ("tiengse" → "tiếng"), so English
-    /// "these", "there", "queue", "reset" stay English.
+    /// Telex "aa" / "ee" / "oo", also typed later in the word or after the tone ("doio" → "dôi", "heset" → "hết").
     private mutating func applyDoubledVowel(_ vowel: Character, key: Character) -> Bool {
-        let candidates = nucleus.filter { index in
-            guard letters[index].base == vowel else {
-                return false
-            }
-            if lastKey == vowel, index == letters.count - 1 {
-                return true
-            }
-            let after = letters[(index + 1)...]
-            return after.allSatisfy { !$0.isVowel } && (tone == .level || !after.isEmpty)
-        }
+        let candidates = nucleus.filter { letters[$0].base == vowel }
         return markVowel(candidates: candidates, key: key) { _ in .circumflex }
     }
 

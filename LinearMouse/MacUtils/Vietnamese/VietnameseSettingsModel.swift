@@ -34,6 +34,22 @@ enum VietnameseInputMethod: String, CaseIterable, Defaults.Serializable {
     }
 }
 
+enum VietnameseTypingMode: String, CaseIterable, Defaults.Serializable {
+    /// MacUtils catches keys and rewrites the word (backspaces + new text), like GoTiengViet.
+    case eventTap
+    /// The "MacUtils Tiếng Việt" input source composes the word in place (marked text), no rewriting.
+    case inputMethod
+
+    var title: String {
+        switch self {
+        case .eventTap:
+            return "Bắt phím (giống GoTiengViet)"
+        case .inputMethod:
+            return "Input source macOS (không nháy chữ)"
+        }
+    }
+}
+
 extension VietCodeTable: Defaults.Serializable {
     var title: String {
         switch self {
@@ -111,7 +127,7 @@ enum VietnameseInjectionMode: String, CaseIterable, Codable {
         }
     }
 
-    /// Multiplier for the paced delays; nil means immediate injection.
+    /// Multiplier for the paced (terminal) delays; nil means the fast path with short delays.
     var pacing: UInt32? {
         switch self {
         case .auto, .paced:
@@ -148,6 +164,7 @@ struct VietnameseAppRule: Codable, Hashable, Defaults.Serializable, Identifiable
 extension Defaults.Keys {
     static let vietnameseModuleEnabled = Key<Bool>("macUtils.vietnamese.moduleEnabled", default: true)
     static let vietnameseTypingOn = Key<Bool>("macUtils.vietnamese.typingOn", default: true)
+    static let vietnameseTypingMode = Key<VietnameseTypingMode>("macUtils.vietnamese.typingMode", default: .eventTap)
     static let vietnameseInputMethod = Key<VietnameseInputMethod>(
         "macUtils.vietnamese.inputMethod",
         default: .telex

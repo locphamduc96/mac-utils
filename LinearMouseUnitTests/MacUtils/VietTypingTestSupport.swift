@@ -86,21 +86,20 @@ enum VietTypingTestSupport {
             orders.append(head.keys(method: method) + toneKey + tail)
         }
         if method == .telex {
+            // Bare letters, then every mark (đ, circumflex, horn / breve), then the tone: "doidor" → "đổi".
             var bare = ""
             var marks = ""
             for (index, letter) in word.letters.enumerated() {
                 bare.append(letter.base)
                 if letter.stroke {
-                    bare.append("d")
+                    marks.append("d")
                 }
                 // "ươ" is typed with a single w.
                 let pairedHorn = letter.mark == .horn && letter.base == "o" && index > 0
                     && word.letters[index - 1].mark == .horn && word.letters[index - 1].base == "u"
-                // Circumflex stays next to its vowel: a doubled vowel typed later only counts before
-                // final consonants (covered by testModifiersCanComeLater).
                 switch letter.mark {
                 case .circumflex:
-                    bare.append(letter.base)
+                    marks.append(letter.base)
                 case .horn where !pairedHorn, .breve:
                     marks.append("w")
                 default:

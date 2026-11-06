@@ -35,6 +35,23 @@ final class VietnameseInput {
     func start() {
         observeSettings()
         updateTap()
+        if Defaults[.vietnameseModuleEnabled], Defaults[.vietnameseTypingMode] == .inputMethod {
+            applyTypingMode()
+        }
+    }
+
+    private func applyTypingMode() {
+        engine.reset()
+        switch Defaults[.vietnameseTypingMode] {
+        case .inputMethod where Defaults[.vietnameseModuleEnabled]:
+            // Without the input source nothing would type Vietnamese: fall back to catching keys.
+            if !VietnameseInputSource.selectInputMethod() {
+                os_log("Cannot select the MacUtils input source", log: Self.log, type: .error)
+                Defaults[.vietnameseTypingMode] = .eventTap
+            }
+        default:
+            VietnameseInputSource.selectKeyboardLayout()
+        }
     }
 
     func stop() {
@@ -81,7 +98,15 @@ final class VietnameseInput {
                 userInfo: nil
             )
         }
-        guard let tap = createTap(.cghidEventTap) ?? createTap(.cgSessionEventTap) else {
+        let tap: CFMachPort
+        if let hidTap = createTap(.cghidEventTap) {
+            tap = hidTap
+            injector.pacedPostLocation = .cgSessionEventTap
+        } else if let sessionTap = createTap(.cgSessionEventTap) {
+            // Paced events must not pass through this tap again while it waits for them.
+            tap = sessionTap
+            injector.pacedPostLocation = .cgAnnotatedSessionEventTap
+        } else {
             os_log("Cannot create keyboard event tap", log: Self.log, type: .error)
             return
         }
@@ -193,6 +218,12 @@ final class VietnameseInput {
         observations.append(Defaults.observe(.vietnameseModuleEnabled, options: []) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.updateTap()
+                self?.applyTypingMode()
+            }
+        })
+        observations.append(Defaults.observe(.vietnameseTypingMode, options: []) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.applyTypingMode()
             }
         })
     }
@@ -283,7 +314,10 @@ final class VietnameseInput {
             }
             return nil
         }
-        guard Defaults[.vietnameseTypingOn], keyboardLayoutActive, !isExcludedApp else {
+        // In input-source mode the tap only handles the toggle shortcut; the input source composes the text.
+        guard Defaults[.vietnameseTypingOn], Defaults[.vietnameseTypingMode] == .eventTap, keyboardLayoutActive,
+              !isExcludedApp
+        else {
             engine.reset()
             return Unmanaged.passUnretained(event)
         }
