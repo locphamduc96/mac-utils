@@ -92,7 +92,7 @@ Vòng 2: clean, 0 phát hiện.
 
 - Smoke thật trên máy owner (cần chứng chỉ tự ký + quyền Accessibility).
 - Chứng chỉ tự ký: auto mode chặn agent ghi Keychain, owner chạy `./Scripts/create-local-signing-cert`.
-- Chưa commit: thay đổi đang nằm ở working tree trên `main` (các file mới đánh dấu `git add -N`).
+- Đã commit (`249d35c`, merge `7e3913c`) và push lên https://github.com/locphamduc96/mac-utils (public); ảnh so sánh icon trong `06-reports/assets/` không commit.
 - Thiết kế lại toàn bộ UI/UX: chưa làm, đề xuất riêng kèm demo.
 - Bộ gõ: chưa có macro, từ điển chính tả, loại trừ theo app, đổi phím chuyển, bảng mã TCVN3 / VNI-Win; chèn ký tự chưa có
   chế độ riêng cho Terminal / Office như xkey.
