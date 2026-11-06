@@ -22137,7 +22137,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kéo biểu tượng LinearMouse bên dưới vào danh sách phía trên."
+            "value" : "Kéo biểu tượng MacUtils bên dưới vào danh sách phía trên."
           }
         },
         "zh-Hans" : {
@@ -37573,7 +37573,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LinearMouse không thể bắt đầu xử lý đầu vào chuột. Hãy khởi động lại LinearMouse. Nếu sự cố vẫn tiếp diễn, hãy xem trợ giúp thêm."
+            "value" : "MacUtils không thể bắt đầu xử lý đầu vào chuột. Hãy khởi động lại MacUtils. Nếu sự cố vẫn tiếp diễn, hãy xem trợ giúp thêm."
           }
         },
         "zh-Hans" : {
@@ -37789,7 +37789,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LinearMouse cần quyền %@ để tùy chỉnh thao tác cuộn, chuyển động con trỏ và các nút chuột."
+            "value" : "MacUtils cần quyền %@ để tùy chỉnh thao tác cuộn, chuyển động con trỏ và các nút chuột."
           }
         },
         "zh-Hans" : {
@@ -53665,7 +53665,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khởi động lại LinearMouse"
+            "value" : "Khởi động lại MacUtils"
           }
         },
         "zh-Hans" : {

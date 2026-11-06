@@ -13,9 +13,12 @@ if ! security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
 fi
 
 DERIVED_DATA="build/DerivedData"
+# Hardened runtime's library validation needs an Apple Team ID on the app and on Sparkle.framework;
+# ad-hoc and self-signed identities have none, so dyld refuses to load Sparkle at launch.
 xcodebuild -project LinearMouse.xcodeproj -scheme LinearMouse -configuration Release \
     -derivedDataPath "$DERIVED_DATA" \
     CODE_SIGN_IDENTITY="$IDENTITY" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= OTHER_CODE_SIGN_FLAGS=--timestamp=none \
+    ENABLE_HARDENED_RUNTIME=NO \
     build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
 
 APP="$DERIVED_DATA/Build/Products/Release/MacUtils.app"
@@ -35,3 +38,12 @@ mv /Applications/MacUtils.app.new /Applications/MacUtils.app
 
 codesign -dv /Applications/MacUtils.app 2>&1 | grep -E "Authority|Signature=|Identifier="
 echo "Installed /Applications/MacUtils.app"
+
+# A missing or rejected framework kills the app in dyld before any of our code runs.
+open /Applications/MacUtils.app
+sleep 3
+if ! pgrep -x MacUtils >/dev/null; then
+    echo "error: MacUtils exited right after launch; see ~/Library/Logs/DiagnosticReports/MacUtils-*.ips" >&2
+    exit 1
+fi
+echo "MacUtils is running."

@@ -52,6 +52,14 @@ Yêu cầu thêm giữa chừng (2026-11-06):
 - Icon mới: gen 2 phương án bằng Codex (`gpt-image-2`), chọn B (cửa sổ chia 2/3 + chữ Đ + chuột, đỏ cam), cắt squircle macOS.
   Ảnh: `project-notes/06-reports/assets/2026-11-06-app-icon/`.
 - `Scripts/create-local-signing-cert`, `Scripts/install-macutils`.
+- Sau khi cài thật (2026-11-06):
+  - Bản Release crash ngay khi mở: hardened runtime chỉ cho nạp `Sparkle.framework` khi cùng Team ID, mà chữ ký ad-hoc /
+    tự ký không có Team ID. `install-macutils` build với `ENABLE_HARDENED_RUNTIME=NO` và kiểm tra app còn chạy sau 3 giây.
+  - Toolbar chọn thiết bị / ứng dụng / màn hình không bao giờ ẩn (lỗi có sẵn ở upstream: AppKit không validate item có
+    custom view). Ẩn trực tiếp khi đổi trang, `NSToolbarItem.isHidden` từ macOS 15 để không còn khung viền trống.
+  - 4 chuỗi tiếng Việt của cửa sổ xin quyền còn chữ "LinearMouse" → "MacUtils".
+  - `UISnapshotTests`: vẽ 8 trang cài đặt + cửa sổ xin quyền ra PNG (chỉ chạy khi có `MACUTILS_SNAPSHOT_DIR`).
+    Ảnh + danh sách tính năng: `project-notes/06-reports/2026-11-06-ui-hien-tai.md`.
 - Ghi công: `ThirdPartyNotices/xkey.txt`, `Rectangle.txt`, bảng trong `ThirdPartyNotices/README.md`.
 
 ## Kiểm tra
@@ -59,11 +67,12 @@ Yêu cầu thêm giữa chừng (2026-11-06):
 | Số | Đích | Đo | Nguồn |
 | --- | --- | --- | --- |
 | Build Debug + Release | thành công | `** BUILD SUCCEEDED **` cả hai (ký ad-hoc) | xcodebuild 2026-11-06 |
-| Unit test toàn bộ | 0 lỗi | 1215 test, 0 lỗi (1212 upstream + 3 mới sau review; MacUtils: 11 + 6 + 1) | xcodebuild test |
+| Unit test toàn bộ | 0 lỗi | 1216 test, 0 lỗi, 1 bỏ qua (`UISnapshotTests` khi không có thư mục ảnh); MacUtils: 11 + 6 + 1 + 1 | xcodebuild test |
 | Engine Telex / VNI | đúng như Unikey | `tieengs vieetj` → "tiếng việt", `tie61ng` → "tiếng", `return` giữ nguyên khi bật chính tả | `VietnameseInputTests` |
 | Khung cửa sổ | 90% giữa / 2/3 giữa, đúng màn hình | khớp số Rectangle trên 1512×945, màn phụ lệch gốc, màn dọc | `WindowLayoutTests` |
 | Lint | sạch | swiftformat 0 file cần sửa; swiftlint không cảnh báo ở file mới | swiftformat / swiftlint |
 | App khởi động | không crash | chạy bản Debug, thoát sạch, không có crash report | `open` + `log show` |
+| Cài + mở bản Release | app chạy | `Installed /Applications/MacUtils.app` · `MacUtils is running.` (ad-hoc) | `install-macutils` |
 | Smoke thật (gõ, phím cửa sổ, touchpad) | chạy trên máy owner | **chưa đo**: cần cấp quyền Accessibility cho MacUtils | owner nghiệm thu |
 
 Output test:
@@ -90,8 +99,8 @@ Vòng 2: clean, 0 phát hiện.
 
 ## Chưa làm / để lại
 
-- Smoke thật trên máy owner (cần chứng chỉ tự ký + quyền Accessibility).
-- Chứng chỉ tự ký: auto mode chặn agent ghi Keychain, owner chạy `./Scripts/create-local-signing-cert`.
+- Smoke thật trên máy owner (cần quyền Accessibility; app đã cài bản ad-hoc).
+- Chứng chỉ tự ký: auto mode chặn agent ghi Keychain (2 lần), owner chạy `./Scripts/create-local-signing-cert` rồi cài lại.
 - Đã commit (`9dc0f00`, merge `7a6e2d5`, tác giả `locphamduc96@gmail.com`) và push lên https://github.com/locphamduc96/mac-utils (public); ảnh so sánh icon trong `06-reports/assets/` không commit.
 - Thiết kế lại toàn bộ UI/UX: chưa làm, đề xuất riêng kèm demo.
 - Bộ gõ: chưa có macro, từ điển chính tả, loại trừ theo app, đổi phím chuyển, bảng mã TCVN3 / VNI-Win; chèn ký tự chưa có
