@@ -1,6 +1,6 @@
 # task-002 — Bộ gõ tiếng Việt tự viết cho MacUtils
 
-**Status:** In Progress · **Date:** 2026-11-06 · **Nguồn:** chat với owner
+**Status:** In Review · **Date:** 2026-11-06 · **Nguồn:** chat với owner
 
 Owner thử bộ gõ xkey trong task-001: gõ được nhưng trong Ghostty / Claude Code bị đảo và nuốt chữ ("taij" → "atij",
 "lại" → "l"), "source" thành "sỏuce". Owner: "tôi thấy mấy app này clone thẳng vào không đủ tốt, viết lại hết thì hơn";
