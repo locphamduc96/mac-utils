@@ -347,6 +347,7 @@ class SettingsToolbar: NSToolbar, NSToolbarDelegate {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.validateVisibleItems()
+                self?.updateSchemeIndicatorVisibility()
             }
             .store(in: &cancellables)
 
@@ -364,6 +365,27 @@ class SettingsToolbar: NSToolbar, NSToolbarDelegate {
             return false
         }
         return navigation.isSchemeSpecific
+    }
+
+    private static let schemeIndicatorIdentifiers: Set<NSToolbarItem.Identifier> = [
+        deviceItemIdentifier,
+        appItemIdentifier,
+        displayItemIdentifier
+    ]
+
+    /// AppKit does not validate custom-view items, so `validateToolbarItem` alone never hides them.
+    private func updateSchemeIndicatorVisibility() {
+        for item in items where Self.schemeIndicatorIdentifiers.contains(item.itemIdentifier) {
+            applySchemeIndicatorVisibility(to: item)
+        }
+    }
+
+    /// Hiding only the view leaves an empty bezel on macOS 26; hide the whole item where possible.
+    private func applySchemeIndicatorVisibility(to item: NSToolbarItem) {
+        item.view?.isHidden = !shouldShowSchemeIndicators
+        if #available(macOS 15.0, *) {
+            item.isHidden = !shouldShowSchemeIndicators
+        }
     }
 
     // MARK: - NSToolbarDelegate
@@ -425,6 +447,7 @@ class SettingsToolbar: NSToolbar, NSToolbarDelegate {
     private func createIndicatorItem(identifier: NSToolbarItem.Identifier, indicator: NSButton) -> NSToolbarItem {
         let item = NSToolbarItem(itemIdentifier: identifier)
         item.view = indicator
+        applySchemeIndicatorVisibility(to: item)
         return item
     }
 
