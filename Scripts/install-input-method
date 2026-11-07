@@ -19,7 +19,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 swiftc -O -target "$(uname -m)-apple-macos12.0" -module-name "$NAME" \
     -framework Cocoa -framework InputMethodKit -framework Carbon \
-    LinearMouse/MacUtils/Vietnamese/Typing/*.swift InputMethod/*.swift \
+    LinearMouse/MacUtils/Vietnamese/Typing/*.swift LinearMouse/MacUtils/Vietnamese/EnglishDictionary.swift \
+    InputMethod/*.swift \
     -o "$APP/Contents/MacOS/$NAME"
 cp InputMethod/Info.plist "$APP/Contents/Info.plist"
 sips -s format tiff -z 32 32 LinearMouse/Assets.xcassets/AppIcon.appiconset/Icon-32.png \

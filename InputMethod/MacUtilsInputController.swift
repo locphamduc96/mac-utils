@@ -15,6 +15,7 @@ final class MacUtilsInputController: IMKInputController {
 
     override func activateServer(_ sender: Any!) {
         super.activateServer(sender)
+        engine.isEnglishWord = EnglishDictionary.contains
         engine.settings = SharedSettings.load()
         engine.reset()
         marked = ""

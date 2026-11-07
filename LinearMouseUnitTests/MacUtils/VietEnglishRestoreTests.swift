@@ -5,7 +5,8 @@
 import XCTest
 
 final class VietEnglishRestoreTests: XCTestCase {
-    /// Common English and programming words typed in Telex with "restore English" on.
+    /// Common English and programming words typed in Telex with "restore English" on, with the macOS English
+    /// dictionary the app uses.
     private static let listWords = """
     the be to of and a in that have it for not on with he as you do at this but his by from they we say her she or \
     an will my one all would there their what so up out if about who get which go me when make can like time no just \
@@ -34,7 +35,9 @@ final class VietEnglishRestoreTests: XCTestCase {
         var listKept: [String] = []
         var listChanged: [String] = []
         for word in Set(Self.listWords) {
-            let output = VietTypingTestSupport.type(word + " ")
+            let engine = VietTypingEngine()
+            engine.isEnglishWord = EnglishDictionary.contains
+            let output = VietTypingTestSupport.type(word + " ", engine: engine)
             if output == word + " " {
                 listKept.append(word)
             } else {

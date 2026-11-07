@@ -144,6 +144,22 @@ Review: Codex, 2 vòng (`~/agent-tasks/mac-utils/task-002/review-task-002.md`, `
 
 Review phần sửa: Codex 1 vòng (`review-task-002-followup.md`): P2 chọn input source thất bại vẫn ở chế độ input source → sửa (quay về Bắt phím); P2 gõ tắt dài ngủ trên luồng tap → sửa (chữ > 40 ký tự đi đường chèn chậm).
 
+## Học từ Mkey (2026-11-07)
+
+Owner: "nên lấy cái mkey của mantrandev về, xem họ làm gì mà học lại làm". Đọc `Sources/macOS/ModernKey/MKey.mm` và
+`Sources/engine/Engine.cpp` (commit `5df97d5`, GPL-3.0, chỉ đọc lấy ý tưởng, không chép code):
+
+| Mkey / OpenKey làm | MacUtils trước đó | Đổi thành |
+| --- | --- | --- |
+| Tap tầng session, mọi phím thay chữ gửi đồng bộ qua `CGEventTapPostEvent`, không trễ, không luồng riêng | Tap HID + chèn chậm bất đồng bộ + chờ, gây "aà" | Tap session, gửi đồng bộ qua proxy; terminal / Telegram / mức theo app chỉ thêm khoảng nghỉ trên luồng tap (tối đa 250 ms) |
+| Gõ lặp phím dấu: bỏ dấu, để lại một chữ (`tesst` → test) | Trả lại phím đã gõ → "tesst" | Như Unikey; cuối từ, nếu từ điển tiếng Anh macOS biết phím gốc ("message", "issue", "pass") thì trả phím gốc; ESC trả phím gốc |
+| Chỉ trả phím khi từ sai **và còn dấu** | — | Từ đã huỷ dấu không bị trả nhầm |
+
+Review: Codex 1 vòng (`review-task-002-mkey.md`): P2 xoá chữ sau lần huỷ dấu làm mất lịch sử → sửa (giữ lịch sử với
+phím gõ sau lần huỷ cuối); P2 gõ tắt tra theo chuỗi đã gộp → sửa (tra theo phím thật).
+
+Đo: tiếng Anh giữ nguyên 364 / 368 = 98,9% (có từ điển); 1231 test, 0 lỗi.
+
 ## Chưa làm / để lại
 
 - Gõ thật trên máy owner (event tap và input source).

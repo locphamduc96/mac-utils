@@ -26,7 +26,9 @@ final class VietnameseInput {
     /// False while an input method is selected (the MacUtils input source, Japanese, Korean…): it handles keys itself.
     private var keyboardLayoutActive = true
 
-    private init() {}
+    private init() {
+        engine.isEnglishWord = EnglishDictionary.contains
+    }
 
     var isRunning: Bool {
         tap != nil
@@ -82,31 +84,19 @@ final class VietnameseInput {
             | (1 << CGEventType.leftMouseDown.rawValue)
             | (1 << CGEventType.rightMouseDown.rawValue)
             | (1 << CGEventType.otherMouseDown.rawValue)
-        // HID level, like xkey: paced terminal injections post to the session tap, below this tap, so a
-        // key held back here (waitForPendingInjection) always lands after them. Session level is the fallback.
-        let createTap = { (location: CGEventTapLocation) in
-            CGEvent.tapCreate(
-                tap: location,
-                place: .headInsertEventTap,
-                options: .defaultTap,
-                eventsOfInterest: CGEventMask(mask),
-                callback: { proxy, type, event, _ in
-                    // A C callback cannot capture dynamic Self.
-                    // swiftlint:disable:next prefer_self_in_static_references
-                    VietnameseInput.shared.handle(proxy: proxy, type: type, event: event)
-                },
-                userInfo: nil
-            )
-        }
-        let tap: CFMachPort
-        if let hidTap = createTap(.cghidEventTap) {
-            tap = hidTap
-            injector.pacedPostLocation = .cgSessionEventTap
-        } else if let sessionTap = createTap(.cgSessionEventTap) {
-            // Paced events must not pass through this tap again while it waits for them.
-            tap = sessionTap
-            injector.pacedPostLocation = .cgAnnotatedSessionEventTap
-        } else {
+        // Session level at the head, like OpenKey / Mkey; replacements are posted through this tap's proxy.
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: CGEventMask(mask),
+            callback: { proxy, type, event, _ in
+                // A C callback cannot capture dynamic Self.
+                // swiftlint:disable:next prefer_self_in_static_references
+                VietnameseInput.shared.handle(proxy: proxy, type: type, event: event)
+            },
+            userInfo: nil
+        ) else {
             os_log("Cannot create keyboard event tap", log: Self.log, type: .error)
             return
         }
@@ -263,7 +253,7 @@ final class VietnameseInput {
             return nil
         }
         let mode = mapRules[bundleID]?.injection ?? .auto
-        if mode == .auto, !VietnameseInjector.terminalBundleIDs.contains(bundleID) {
+        if mode == .auto, !VietnameseInjector.pacedBundleIDs.contains(bundleID) {
             return nil
         }
         return mode.pacing
@@ -282,7 +272,6 @@ final class VietnameseInput {
             }
             return Unmanaged.passUnretained(event)
         case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-            injector.waitForPendingInjection()
             toggleDetector.cancel(flags: event.flags)
             engine.reset()
             return Unmanaged.passUnretained(event)
@@ -305,8 +294,6 @@ final class VietnameseInput {
         if event.getIntegerValueField(.eventSourceUserData) == VietnameseInjector.marker {
             return Unmanaged.passUnretained(event)
         }
-        injector.waitForPendingInjection()
-
         if isToggleShortcut(event) {
             engine.reset()
             DispatchQueue.main.async {
