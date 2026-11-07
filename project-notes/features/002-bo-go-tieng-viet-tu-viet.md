@@ -44,7 +44,7 @@ Vì vậy bộ gõ mới cần cả hai: engine có luật âm tiết chặt + k
 | task-002c | Lớp chèn: tap HID, semaphore, hồ sơ app, độ trễ theo app | Owner gõ đoạn mẫu 3 lần nhanh trong Ghostty, Claude Code, Chrome (thanh địa chỉ + trang), Notes: 0 lỗi | 1,5 | In Review — chờ owner gõ thật |
 | task-002d | Phím chuyển đổi được, nhớ theo app, loại trừ app, gõ tắt | Unit test + owner thử | 1 | Done |
 | task-002e | Trang cài đặt Tiếng Việt + menu V / E theo tính năng mới; gỡ engine xkey | Ảnh `UISnapshotTests` trước / sau | 0,5 | Done |
-| task-002f | Input source macOS (InputMethodKit) dùng chung engine: bundle cài vào `~/Library/Input Methods`, chọn trong menu bàn phím | Owner chọn input source, gõ đoạn mẫu trong Ghostty / Chrome / Notes: 0 lỗi | 1,5 | In Review — chờ owner gõ thật |
+| task-002f | Input source macOS (InputMethodKit) dùng chung engine: bundle cài vào `~/Library/Input Methods`, chọn trong menu bàn phím | Owner chọn input source, gõ đoạn mẫu trong Ghostty / Chrome / Notes: 0 lỗi | 1,5 | Done — owner xác nhận 2026-11-07 |
 | task-002g | Codex review, cài bản Release, ghi kết quả | Review clean, owner nghiệm thu | 0,5 | Done |
 
 Mỗi task: code → test → owner nói go task kế. Tổng khoảng 8 ngày công. Sau task-002a có bảng demo gõ thử (phím → chữ ra) để owner xem trước.
@@ -104,7 +104,8 @@ Mỗi task: code → test → owner nói go task kế. Tổng khoảng 8 ngày c
 | Unit test toàn bộ | 0 lỗi | 1230 test, 0 lỗi, 1 bỏ qua (`UISnapshotTests`) | xcodebuild test |
 | Lint | sạch | swiftformat 0 file; swiftlint 0 cảnh báo ở phần MacUtils | swiftformat / swiftlint |
 | Cài bản Release + input source | chạy được | `MacUtils is running.` · `Registered input source.` · ký `MacUtils Local Signing` | `install-macutils` |
-| Gõ thật trong Ghostty, Claude Code, Chrome, Notes | 0 lỗi | **chưa đo**: owner nghiệm thu | owner |
+| Gõ thật — input source macOS | ổn | Owner 2026-11-07: "đổi sang dạng mac thì nó ổn áp hẳn rồi" | owner |
+| Gõ thật — bắt phím (event tap) | 0 lỗi | chưa xác nhận sau bản gửi đồng bộ theo Mkey | owner |
 
 Output test:
 
@@ -162,7 +163,7 @@ phím gõ sau lần huỷ cuối); P2 gõ tắt tra theo chuỗi đã gộp → 
 
 ## Chưa làm / để lại
 
-- Gõ thật trên máy owner (event tap và input source).
+- Gõ thật chế độ bắt phím sau bản gửi đồng bộ (owner đang dùng input source macOS).
 - Quyền Accessibility vẫn mất sau mỗi lần cài lại dù app ký bằng chứng chỉ tự ký (designated requirement cố định
   theo chứng chỉ); log TCC bị ẩn, chưa rõ nguyên nhân.
 - Danh sách từ tiếng Anh ưu tiên là cố định trong code, chưa sửa được trong cài đặt.
