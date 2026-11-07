@@ -41,9 +41,19 @@ enum VietAction: Equatable {
 final class VietTypingEngine {
     var settings: VietTypingSettings
 
+    /// Answers whether a word is English; used when a word whose modifier was cancelled ends ("message",
+    /// typed m-e-s-s-a-g-e, shows "mesage" like Unikey until Space restores the keys). Nil: never restore those.
+    var isEnglishWord: ((String) -> Bool)?
+
     private var word = VietWord()
-    /// Keys typed for the current word, exactly as typed.
+    /// Keys exactly as typed.
+    private var typed = ""
+    /// The word as plain keys, with each cancelled modifier counted once ("tesst" → "test", "cass" → "cas").
     private var raw = ""
+    /// A modifier was cancelled in this word.
+    private var hadUndo = false
+    /// `typed.count` right after the last cancelled modifier; keys after it appear in both `typed` and `raw`.
+    private var typedCountAtLastUndo = 0
     /// Current word as the app shows it (Unicode).
     private(set) var displayed = ""
     /// The word is not Vietnamese: keys are shown as typed until it ends.
@@ -65,7 +75,10 @@ final class VietTypingEngine {
 
     func reset() {
         word = VietWord()
+        typed = ""
         raw = ""
+        hadUndo = false
+        typedCountAtLastUndo = 0
         displayed = ""
         showsRaw = false
         keepsRaw = false
@@ -108,9 +121,17 @@ final class VietTypingEngine {
 
     private func typeLetter(_ character: Character) -> VietAction {
         let old = displayed
-        raw.append(character)
-        if !showsRaw {
+        typed.append(character)
+        if showsRaw {
+            raw.append(character)
+        } else {
             word.type(character, method: settings.method)
+            if word.didUndo {
+                hadUndo = true
+                typedCountAtLastUndo = typed.count
+            } else {
+                raw.append(character)
+            }
             if settings.restoreEnglish, word.validity == .invalid {
                 showsRaw = true
             }
@@ -134,10 +155,20 @@ final class VietTypingEngine {
         guard !raw.isEmpty else {
             return nil
         }
-        if let expansion = settings.macros[raw.lowercased()] {
-            return raw.first?.isUppercase == true ? expansion.prefix(1).uppercased() + expansion.dropFirst() : expansion
+        if let expansion = settings.macros[typed.lowercased()] {
+            return typed.first?.isUppercase == true ? expansion.prefix(1).uppercased() + expansion
+                .dropFirst() : expansion
         }
-        guard settings.restoreEnglish, !showsRaw, displayed != raw else {
+        guard settings.restoreEnglish else {
+            return nil
+        }
+        // Like Unikey a cancelled modifier types itself once ("tesst" → "test"); real English words with doubled
+        // letters get their keys back ("message", "issue", "pass").
+        if hadUndo, typed != displayed, showsRaw || word.validity != .complete,
+           isEnglishWord?(typed.lowercased()) == true {
+            return typed
+        }
+        guard !showsRaw, displayed != raw else {
             return nil
         }
         if word.validity != .complete || Self.englishWords.contains(raw.lowercased()) {
@@ -152,6 +183,13 @@ final class VietTypingEngine {
         }
         if showsRaw {
             raw.removeLast()
+            // A key typed after the last cancelled modifier sits at the end of both; otherwise the history is gone.
+            if hadUndo, typed.count > typedCountAtLastUndo {
+                typed.removeLast()
+            } else {
+                typed = raw
+                hadUndo = false
+            }
             displayed = raw
             if raw.isEmpty {
                 reset()
@@ -168,6 +206,8 @@ final class VietTypingEngine {
         if let rebuilt = VietWord(displayed: displayed), !displayed.isEmpty {
             word = rebuilt
             raw = rebuilt.keys(method: settings.method)
+            typed = raw
+            hadUndo = false
         } else {
             reset()
         }
@@ -189,17 +229,18 @@ final class VietTypingEngine {
         showsRaw = false
     }
 
-    /// ESC: show the keys exactly as typed ("úẻ" → "user").
+    /// ESC: show the keys exactly as typed ("úẻ" → "user", "mesage" → "message").
     private func restoreTypedKeys() -> VietAction {
-        guard !raw.isEmpty, !showsRaw, displayed != raw else {
+        guard !typed.isEmpty, displayed != typed else {
             reset()
             return .pass
         }
         let old = displayed
         showsRaw = true
         keepsRaw = true
-        displayed = raw
-        return .replace(edit(from: old, to: raw), deliverKey: false)
+        raw = typed
+        displayed = typed
+        return .replace(edit(from: old, to: typed), deliverKey: false)
     }
 
     // MARK: - Edits

@@ -21,6 +21,10 @@ struct VietWord: Equatable {
     private var toneUndone = false
     private var markUndone = false
     private var strokeUndone = false
+    /// Index of the "ư" typed by a lone Telex "w", so "ww" gives back a single "w".
+    private var standaloneHornIndex: Int?
+    /// The last key cancelled a modifier ("ss", "aaa", "ww"): it typed itself instead.
+    private(set) var didUndo = false
 
     var isEmpty: Bool {
         letters.isEmpty
@@ -60,6 +64,7 @@ struct VietWord: Equatable {
     }
 
     mutating func type(_ key: Character, method: VietInputMethod) {
+        didUndo = false
         guard let lower = key.lowercased().first else {
             return
         }
@@ -148,6 +153,7 @@ struct VietWord: Equatable {
         if tone == newTone {
             tone = .level
             toneUndone = true
+            didUndo = true
             appendLiteral(key)
             return true
         }
@@ -188,6 +194,7 @@ struct VietWord: Equatable {
         if let marked = candidates.last(where: { letters[$0].mark == mark(letters[$0]) }) {
             letters[marked].mark = .plain
             markUndone = true
+            didUndo = true
             appendLiteral(key)
             return true
         }
@@ -204,6 +211,14 @@ struct VietWord: Equatable {
     }
 
     private mutating func applyHorn(targets: Set<Character>, key: Character, standalone: Bool) -> Bool {
+        if standalone, let index = standaloneHornIndex, index == letters.count - 1 {
+            letters.removeLast()
+            standaloneHornIndex = nil
+            markUndone = true
+            didUndo = true
+            appendLiteral(key)
+            return true
+        }
         let vowels = nucleus
         // "uo" + w → "ươ".
         if targets.contains("u"),
@@ -216,6 +231,7 @@ struct VietWord: Equatable {
                 letters[index].mark = .plain
                 letters[index + 1].mark = .plain
                 markUndone = true
+                didUndo = true
                 appendLiteral(key)
                 return true
             }
@@ -234,10 +250,15 @@ struct VietWord: Equatable {
             return markVowel(candidates: candidates, key: key) { $0.base == "a" ? .breve : .horn }
         }
         // Telex "w" on its own types "ư" ("tw" → "tư").
-        guard standalone, !markUndone else {
+        guard standalone, !markUndone, attempt({ $0.letters.append(VietLetter(
+            base: "u",
+            isUpper: key.isUppercase,
+            mark: .horn
+        )) }) else {
             return false
         }
-        return attempt { $0.letters.append(VietLetter(base: "u", isUpper: key.isUppercase, mark: .horn)) }
+        standaloneHornIndex = letters.count - 1
+        return true
     }
 
     private mutating func applyStroke(key: Character) -> Bool {
@@ -247,6 +268,7 @@ struct VietWord: Equatable {
         if first.stroke {
             letters[0].stroke = false
             strokeUndone = true
+            didUndo = true
             appendLiteral(key)
             return true
         }

@@ -7,7 +7,11 @@ enum VietTypingTestSupport {
     /// Replays keys through the engine and applies its edits to a simulated text field.
     /// "<" = backspace, "⎋" = escape, "⏎" = return.
     static func type(_ keys: String, settings: VietTypingSettings = VietTypingSettings()) -> String {
-        let engine = VietTypingEngine(settings: settings)
+        type(keys, engine: VietTypingEngine(settings: settings))
+    }
+
+    static func type(_ keys: String, engine: VietTypingEngine) -> String {
+        engine.reset()
         var screen = String.UnicodeScalarView()
         for key in keys {
             let input: VietKey

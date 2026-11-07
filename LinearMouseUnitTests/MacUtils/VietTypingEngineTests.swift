@@ -102,9 +102,13 @@ final class VietTypingEngineTests: XCTestCase {
         assertTyping([
             ("cafs", "cá"),
             ("casz", "ca"),
-            ("cass", "cass"),
-            ("pass", "pass"),
-            ("ww", "ww")
+            ("cass", "cas"),
+            ("tesst", "test"),
+            ("tesst ", "test "),
+            ("aaa", "aa"),
+            ("ddd", "dd"),
+            ("ww", "w"),
+            ("www", "ww")
         ])
     }
 
@@ -155,7 +159,22 @@ final class VietTypingEngineTests: XCTestCase {
     }
 
     func testEscapeRestoresTypedKeys() {
-        assertTyping([("mix⎋", "mix"), ("user⎋", "user"), ("vieetj⎋", "vieetj")])
+        assertTyping([("mix⎋", "mix"), ("user⎋", "user"), ("vieetj⎋", "vieetj"), ("message⎋", "message")])
+    }
+
+    /// Doubled letters cancel the tone like Unikey; real English words get their keys back when the word ends.
+    func testCancelledModifierRestoresEnglishWords() {
+        let english: Set = ["message", "issue", "pass", "session", "assert"]
+        let engine = VietTypingEngine()
+        engine.isEnglishWord = { english.contains($0) }
+        let cases = [
+            ("message ", "message "), ("issue ", "issue "), ("pass ", "pass "), ("session ", "session "),
+            ("assert.", "assert."), ("tesst ", "test "), ("cass ", "cas "), ("message", "mesage"),
+            ("messagex< ", "message "), ("messagex<⎋", "message")
+        ]
+        for (keys, expected) in cases {
+            XCTAssertEqual(VietTypingTestSupport.type(keys, engine: engine), expected, "keys: \(keys)")
+        }
     }
 
     func testReturnEndsWord() {
@@ -220,9 +239,9 @@ final class VietTypingEngineTests: XCTestCase {
 
     func testMacros() {
         var settings = VietTypingSettings()
-        settings.macros = ["vn": "Việt Nam", "ko": "không"]
+        settings.macros = ["vn": "Việt Nam", "ko": "không", "pass": "password"]
         assertTyping(
-            [("vn ", "Việt Nam "), ("Vn ", "Việt Nam "), ("ko.", "không."), ("vns ", "vns ")],
+            [("vn ", "Việt Nam "), ("Vn ", "Việt Nam "), ("ko.", "không."), ("vns ", "vns "), ("pass ", "password ")],
             settings: settings
         )
     }
